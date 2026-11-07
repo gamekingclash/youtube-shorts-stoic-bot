@@ -373,20 +373,23 @@ FORBIDDEN_TAGS = {
     "template", "subscribe", "button", "animation", "3d", "vfx", "loop", "isolated"
 }
 
-CURATED_FINANCE_QUERIES = [
-    "wall street stock market exchange",
-    "modern penthouse skyline night",
-    "supercar night drive city",
-    "luxury watch wrist close up",
-    "counting dollar bills cash money",
-    "modern skyscraper nocturnal glass",
-    "gold bullion bars vault",
-    "private jet tarmac runway",
-    "executive boardroom skyline meeting",
-    "stock trading candlestick monitor",
-    "luxury yacht open ocean",
-    "financial district traffic night",
+CURATED_STOIC_QUERIES = [
+    "ancient greek roman marble statue dark",
+    "dark rain thunderstorm window moody cinematic",
+    "solitary man standing mountain cliff fog",
+    "burning candle dark room cinematic",
+    "ancient stone temple ruins dark moody",
+    "foggy forest dark moody cinematic",
+    "philosopher thinking stone statue shadow",
+    "dramatic dark storm clouds mountain",
 ]
+
+REQUIRED_STOIC_CONCEPTS = {
+    "statue", "sculpture", "rome", "greek", "ancient", "marble",
+    "philosophy", "monk", "meditation", "rain", "dark", "storm",
+    "fog", "mountain", "fire", "candle", "solitude", "thinking",
+    "nature", "forest", "shadow", "stone", "ruins", "sky"
+}
 
 USED_CLIPS_FILE = BASE_DIR / "used_clips.json"
 SESSION_USED_VIDEO_IDS = set()
@@ -416,7 +419,7 @@ def save_persistent_used_clip(clip_id: str):
 
 def fetch_pixabay_video(query: str, dest_path: Path, retry_with_curated: bool = True) -> bool:
     """
-    Downloads luxury, wealth, and finance film stock video from Pixabay API (video_type=film)
+    Downloads cinematic Stoic, ancient statue, and moody atmospheric film stock video from Pixabay API (video_type=film)
     with strict anti-green-screen filtering and persistent deduplication across runs.
     """
     import random
@@ -440,14 +443,7 @@ def fetch_pixabay_video(query: str, dest_path: Path, retry_with_curated: bool = 
                 tags = set(t.strip().lower() for t in raw_tags.split(","))
                 if tags.intersection(FORBIDDEN_TAGS) or "green" in raw_tags or "chroma" in raw_tags:
                     continue
-                REQUIRED_FINANCE_CONCEPTS = {
-                    "money", "cash", "dollar", "currency", "bill", "gold", "bullion",
-                    "stock", "market", "chart", "trading", "exchange", "wall street",
-                    "city", "skyline", "skyscraper", "building", "penthouse", "architecture",
-                    "car", "supercar", "sports car", "luxury", "watch", "yacht", "jet",
-                    "office", "business", "executive", "boardroom", "suit", "finance", "wealth"
-                }
-                if not any(req in raw_tags for req in REQUIRED_FINANCE_CONCEPTS):
+                if not any(req in raw_tags for req in REQUIRED_STOIC_CONCEPTS):
                     continue
                 clip_key = f"px_{hit.get('id')}"
                 if clip_key in SESSION_USED_VIDEO_IDS or hit.get("id") in SESSION_USED_VIDEO_IDS:
@@ -471,14 +467,14 @@ def fetch_pixabay_video(query: str, dest_path: Path, retry_with_curated: bool = 
                                 f.write(chunk)
                         if validate_video_file(dest_path):
                             save_persistent_used_clip(clip_key)
-                            print(f"[OK] Downloaded unique luxury stock video ({clip_key}) for '{clean_query}'.")
+                            print(f"[OK] Downloaded unique Stoic stock video ({clip_key}) for '{clean_query}'.")
                             return True
     except Exception as exc:
         print(f"[WARN] Pixabay fetch failed for '{clean_query}': {exc}")
 
     if retry_with_curated:
-        fallback_q = random.choice(CURATED_FINANCE_QUERIES)
-        print(f"[INFO] Falling back to randomized luxury query: '{fallback_q}'")
+        fallback_q = random.choice(CURATED_STOIC_QUERIES)
+        print(f"[INFO] Falling back to randomized Stoic query: '{fallback_q}'")
         return fetch_pixabay_video(fallback_q, dest_path, retry_with_curated=False)
 
     return False
@@ -489,7 +485,7 @@ def fetch_fallback_stock_video(dest_path: Path, scene_idx: int) -> bool:
     Fallback using randomized curated finance queries so clips never repeat.
     """
     import random
-    q = CURATED_FINANCE_QUERIES[scene_idx % len(CURATED_FINANCE_QUERIES)]
+    q = CURATED_STOIC_QUERIES[scene_idx % len(CURATED_STOIC_QUERIES)]
     return fetch_pixabay_video(q, dest_path, retry_with_curated=False)
 
 
@@ -715,7 +711,7 @@ def build_shorts_video(topic: str) -> Path:
     composite = composite.with_duration(final_audio.duration)
 
     safe_title = re.sub(r"[^a-zA-Z0-9]+", "_", meta.get("title", topic))[:35]
-    output_path = OUTPUT_DIR / f"Finance_{safe_title}.mp4"
+    output_path = OUTPUT_DIR / f"Stoic_{safe_title}.mp4"
 
     print(f"\n[STEP 4/4] Rendering vertical 1080x1920 MP4 to {output_path.name}...")
     composite.write_videofile(
@@ -733,7 +729,7 @@ def build_shorts_video(topic: str) -> Path:
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2, ensure_ascii=False)
 
-    print(f"\n[DONE] High-status Finance Short generated successfully: {output_path}")
+    print(f"\n[DONE] Stoic Wisdom Short generated successfully: {output_path}")
     return output_path
 
 

@@ -63,28 +63,17 @@ VIRAL_STOIC_PROMPTS = [
     "The mirror test: What Marcus Aurelius saw every morning before ruling Rome",
     "Why comfort is the silent killer of modern ambition",
     "How to master impulse control and conquer your own desires",
-    "Amor Fati: The ancient art of loving whatever happens to you",
-
-    "3 brutal money truths 99% of people realize too late in life",
-    "How the top 1% use debt to become richer while the poor stay broke",
-    "Warren Buffett's 5/25 rule for extreme wealth and focus",
-    "The silent psychological money trap keeping most people poor",
-    "3 dark tricks luxury brands use to make you feel broke",
-    "Why saving money in a bank account is a guaranteed loss",
-    "The 24-hour rule millionaires use before spending any money",
-    "How self-made billionaires think about risk and asymmetric bets",
-    "3 daily financial habits that separate the rich from the middle class",
-    "The psychology of compounding interest: How small habits build empires",
-    "Why a monthly salary is the drug employers give you to forget your ambition",
-    "The unspoken rules of wealth they intentionally never taught in school",
-    "How to negotiate business deals and salary like a high-stakes closer",
-    "Why truly wealthy people practice stealth wealth and never brag",
-    "The asset vs liability mindset explained in under 30 seconds",
-    "The psychological difference between being rich and being truly wealthy",
-    "How money amplifies who you truly are inside",
-    "The 3 financial leaks draining your net worth without you knowing",
+    "Amor Fati: Why loving your fate turns every disaster into fuel",
+    "Why you should never complain, not even to yourself",
+    "Epictetus on freedom: You only control your thoughts and actions",
+    "How to remain calm when everyone around you is panicking",
+    "The 3 things you must cut out of your life to find peace",
+    "Why the opinion of 10,000 foolish people means nothing",
+    "The Stoic cure for overthinking and racing thoughts",
+    "How to turn pain into unshakeable mental armor",
+    "Seneca on anger: Temporary madness that costs you everything",
+    "Why true power is conquering yourself, not other people"
 ]
-
 
 def pick_viral_topic() -> str:
     """
@@ -99,12 +88,13 @@ def pick_viral_topic() -> str:
         try:
             import requests
 
-            past_list_str = "\n- ".join(past_topics[-15:]) if past_topics else "None"
+                        past_list_str = "
+- ".join(past_topics[-15:]) if past_topics else "None"
             prompt = f"""
-We have ALREADY published YouTube Shorts about these wealth & finance topics:
+We have ALREADY published YouTube Shorts about these Stoic philosophy topics:
 - {past_list_str}
 
-CRITICAL RULE: Suggest ONE brand new, fresh, high-status YouTube Shorts topic in English about wealth mindset, millionaire psychology, money traps, or asymmetric investing.
+CRITICAL RULE: Suggest ONE brand new, deeply impactful YouTube Shorts topic in English about Stoicism, Marcus Aurelius, Seneca, Epictetus, mental resilience, emotional mastery, or discipline.
 Do NOT duplicate or repeat the ideas above.
 Return ONLY the topic sentence, under 10 words, no quotes.
 """
@@ -129,7 +119,7 @@ Return ONLY the topic sentence, under 10 words, no quotes.
 
 def run_autopilot(privacy_status: str = "scheduled"):
     print("=" * 60)
-    print("      24/7 AUTONOMOUS WEALTH & FINANCE SHORTS ENGINE      ")
+    print("      24/7 AUTONOMOUS STOIC WISDOM SHORTS ENGINE      ")
     print("=" * 60)
 
     # 1. Pick unique topic
@@ -145,10 +135,10 @@ def run_autopilot(privacy_status: str = "scheduled"):
         with open(meta_path, "r", encoding="utf-8") as f:
             meta = json.load(f)
         title = meta.get("title", f"{topic.title()} #shorts")
-        description = meta.get("description", f"{topic} #shorts #money #wealth #mindset")
+        description = meta.get("description", f"{topic} #shorts #stoic #stoicism #marcusaurelius #philosophy #wisdom")
     else:
         title = f"{topic.title()} #shorts"
-        description = f"The hidden truth about {topic}. Subscribe for daily wealth insights! #shorts #money #wealth"
+        description = f"Ancient Stoic wisdom on {topic}. Subscribe for daily mental mastery! #shorts #stoic #stoicism #marcusaurelius #philosophy #wisdom"
 
     tags = ["shorts", "stoicism", "marcusaurelius", "philosophy", "wisdom", "mindset", "mentalstrength"]
 
