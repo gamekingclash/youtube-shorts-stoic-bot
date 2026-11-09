@@ -123,14 +123,16 @@ def generate_tts_with_word_timings(text: str, audio_path: Path) -> list[dict]:
     Synthesizes speech using edge-tts with precise word boundaries for dynamic captions.
     Voice: en-US-ChristopherNeural with 1.1x speed (rate=+10%).
     """
-    voice = os.getenv("TTS_VOICE", "en-US-ChristopherNeural").strip()
+    voice = os.getenv("TTS_VOICE", "en-US-BrianNeural").strip()
+    if voice == "en-US-ChristopherNeural":
+        voice = "en-US-BrianNeural"
     word_timings = []
 
     clean_text = re.sub(r"[\*\_#`]+", "", text)
     clean_text = re.sub(r"^\d+[\.\)]\s*", "", clean_text).strip()
 
     async def _run():
-        communicate = edge_tts.Communicate(clean_text, voice, rate="+10%", boundary="WordBoundary")
+        communicate = edge_tts.Communicate(clean_text, voice, rate="+5%", boundary="WordBoundary")
         with open(audio_path, "wb") as f:
             async for chunk in communicate.stream():
                 if chunk["type"] == "audio":
@@ -153,7 +155,7 @@ def generate_tts_with_word_timings(text: str, audio_path: Path) -> list[dict]:
         asyncio.run(_run())
     except Exception as e:
         print(f"[WARN] edge-tts stream failed: {e}. Retrying without word boundaries...")
-        communicate = edge_tts.Communicate(clean_text, voice, rate="+10%")
+        communicate = edge_tts.Communicate(clean_text, voice, rate="+5%")
         asyncio.run(communicate.save(str(audio_path)))
         try:
             import wave
