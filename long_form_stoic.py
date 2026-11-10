@@ -109,22 +109,39 @@ def mark_clip_used(clip_id: str):
     save_json_list(USED_CLIPS_FILE, sorted(list(used)))
 
 
-def call_gemini_text(prompt: str, timeout: int = 45) -> str:
+def call_gemini_text(prompt: str, timeout: int = 45, json_mode: bool = True) -> str:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         return ""
-    for model in ["gemini-2.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]:
-        try:
-            r = requests.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}",
-                json={"contents": [{"parts": [{"text": prompt}]}]},
-                timeout=timeout,
-            )
-            if r.status_code == 200:
-                return r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-            print(f"[WARN] Gemini {model} returned {r.status_code}")
-        except Exception as e:
-            print(f"[WARN] Gemini {model} error: {e}")
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    if json_mode:
+        payload["generationConfig"] = {"responseMimeType": "application/json"}
+
+    models = [
+        "gemini-flash-latest",
+        "gemini-flash-lite-latest",
+        "gemini-3-flash-preview",
+        "gemini-3.8-flash",
+        "gemini-3.5-flash",
+    ]
+    for model in models:
+        for attempt in range(2):
+            try:
+                r = requests.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}",
+                    json=payload,
+                    timeout=timeout,
+                )
+                if r.status_code == 200:
+                    return r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                print(f"[WARN] Gemini {model} returned {r.status_code} (attempt {attempt + 1})")
+                if r.status_code in (429, 503):
+                    time.sleep(4)
+                else:
+                    break
+            except Exception as e:
+                print(f"[WARN] Gemini {model} error: {e}")
+                time.sleep(2)
     return ""
 
 
@@ -181,6 +198,7 @@ CRITICAL VOICE & LISTENER RULES:
    - Rhetorical questions (?) that invite the listener to reflect.
 3. No stage directions, no markdown asterisks, no emojis, no chapter header spoken aloud unless natural.
 4. For each scene, choose either "video" (70% of scenes) or "photo" (30% of scenes — ideal for dramatic marble busts, ancient ruins, moody close-ups), and give a simple 2-3 word English stock search query matching the chapter's mood.
+5. Draw across ALL classic Stoics (Zeno of Citium, Cleanthes, Musonius Rufus, Epictetus, Seneca, Marcus Aurelius) and weave in brief, authentic quotes and references to classic works (Meditations, Letters from a Stoic, On the Shortness of Life, Discourses, Enchiridion).
 
 Return ONLY valid JSON:
 {{
@@ -625,7 +643,8 @@ def run_long_form_pipeline(topic: str = None, privacy_status: str = "public", up
             topic = random.choice(available)
         else:
             gen_t = call_gemini_text(
-                f"Suggest ONE compelling, original 12-minute YouTube Stoic philosophy documentary title (not in: {list(past_topics)}). Return ONLY the title."
+                f"Suggest ONE compelling, original 12-minute YouTube Stoic philosophy documentary title (not in: {list(past_topics)}). Return ONLY the title.",
+                json_mode=False,
             )
             topic = gen_t.strip('"') if gen_t else random.choice(CURATED_LONG_TOPICS)
 
