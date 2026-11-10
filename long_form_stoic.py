@@ -368,25 +368,31 @@ def compute_scene_durations(wav_path: Path, scenes: list[dict]) -> list[float]:
     return durations
 
 
-def fetch_landscape_media(query: str, visual_type: str, dest_path: Path) -> str:
+def fetch_landscape_media(query: str, visual_type: str, dest_path: Path, target_dur: float = 10.0) -> str:
     """
-    Fetches horizontal 16:9 Pixabay video or photo avoiding duplicates and green screens.
+    Fetches horizontal 16:9 Pixabay video (>= 9s to prevent repetitive short loops)
+    or horizontal photo avoiding duplicates and green screens.
     Returns 'video' or 'photo' depending on what was actually downloaded.
     """
     api_key = os.getenv("PIXABAY_API_KEY", "").strip()
     used = get_used_clips()
     clean_q = " ".join(re.sub(r"[^a-zA-Z0-9 ]+", " ", query).split()[:3])
+    min_vid_sec = max(8, int(round(target_dur * 0.75)))
 
     if visual_type == "video":
         queries = [clean_q] + random.sample(STOIC_VIDEO_QUERIES, 2)
         for q in queries:
-            url = f"https://pixabay.com/api/videos/?key={api_key}&q={quote(q)}&video_type=film&per_page=25"
+            url = f"https://pixabay.com/api/videos/?key={api_key}&q={quote(q)}&video_type=film&per_page=30"
             try:
                 r = requests.get(url, timeout=15)
                 if r.status_code == 200:
                     hits = r.json().get("hits", [])
-                    random.shuffle(hits)
-                    for hit in hits:
+                    # Prefer videos long enough to cover the scene without awkward short-clip looping
+                    long_hits = [h for h in hits if h.get("duration", 0) >= min_vid_sec]
+                    if not long_hits:
+                        long_hits = [h for h in hits if h.get("duration", 0) >= 8]
+                    random.shuffle(long_hits)
+                    for hit in long_hits:
                         raw_tags = hit.get("tags", "").lower()
                         if set(t.strip() for t in raw_tags.split(",")).intersection(FORBIDDEN_TAGS) or "green" in raw_tags:
                             continue
@@ -704,7 +710,7 @@ def run_long_form_pipeline(topic: str = None, privacy_status: str = "public", up
         # 4. Fetch media & render normalized 1080p clips locked to breath pauses
         for s_idx, (sc, sdur) in enumerate(zip(scenes, scene_durs)):
             m_base = TEMP_DIR / f"media_c{c_num}_s{s_idx}"
-            actual_type = fetch_landscape_media(sc.get("search_query", "marble statue"), sc.get("visual_type", "video"), m_base)
+            actual_type = fetch_landscape_media(sc.get("search_query", "marble statue"), sc.get("visual_type", "video"), m_base, target_dur=sdur)
             if actual_type == "photo" and first_photo_for_thumb is None:
                 first_photo_for_thumb = m_base.with_suffix(".jpg")
 
