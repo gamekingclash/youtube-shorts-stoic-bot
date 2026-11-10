@@ -190,7 +190,7 @@ Mood/Visual theme for this chapter: {c_mood}
 Core message to cover: {c_points}
 
 CRITICAL VOICE & LISTENER RULES:
-1. Write 300 to 360 spoken words divided into 6 cohesive micro-scenes (50-60 words per scene).
+1. Write 320 to 380 spoken words divided into 10 cohesive micro-scenes (30-40 words per scene, ~10-12 seconds each so visuals stay fresh).
 2. Because listeners also consume this audio-only, use DELIBERATE punctuation:
    - Commas (,) for natural breathing pauses.
    - Em-dashes (—) for dramatic shifts.
@@ -473,10 +473,12 @@ def render_normalized_scene_clip(
     duration: float,
     out_mp4: Path,
     overlay_png: Path = None,
+    move_idx: int = 0,
 ):
     """
     Renders a single normalized 1920x1080 30fps silent clip locked to exact `duration`
-    with unified dark Stoic color grading, Ken Burns zoom for photos, and optional chapter card.
+    with unified dark Stoic color grading, continuous Ken Burns pan+zoom for photos,
+    and optional chapter card.
     """
     frames = max(30, int(round(duration * FPS)))
     grade = "eq=contrast=1.08:brightness=-0.05:saturation=0.72,vignette=PI/4"
@@ -490,11 +492,21 @@ def render_normalized_scene_clip(
         cmd = [FFMPEG_EXE, "-y", "-stream_loop", "-1", "-i", str(in_file)]
     else:
         in_file = media_base.with_suffix(".jpg")
-        # Gentle Ken Burns slow zoom (1.0 -> 1.12)
+        # Continuous Ken Burns pan+zoom across 0% -> 100% of `frames` (never freezes!)
+        m_id = move_idx % 4
+        if m_id == 0:
+            zp = f"z='1.04+0.20*(on/{frames})':x='(iw-iw/zoom)*(0.2+0.6*(on/{frames}))':y='(ih-ih/zoom)*0.5'"
+        elif m_id == 1:
+            zp = f"z='1.24-0.20*(on/{frames})':x='(iw-iw/zoom)*(0.8-0.6*(on/{frames}))':y='(ih-ih/zoom)*0.5'"
+        elif m_id == 2:
+            zp = f"z='1.08+0.16*(on/{frames})':x='(iw-iw/zoom)*(0.3+0.4*(on/{frames}))':y='(ih-ih/zoom)*(0.7-0.4*(on/{frames}))'"
+        else:
+            zp = f"z='1.05+0.18*(on/{frames})':x='(iw-iw/zoom)*0.5':y='(ih-ih/zoom)*(0.2+0.6*(on/{frames}))'"
+
         vfilter = (
             f"[0:v]scale=3840:2160:force_original_aspect_ratio=increase,"
             f"crop=3840:2160,"
-            f"zoompan=z='min(zoom+0.0005,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={frames}:s={VIDEO_WIDTH}x{VIDEO_HEIGHT}:fps={FPS},"
+            f"zoompan={zp}:d={frames}:s={VIDEO_WIDTH}x{VIDEO_HEIGHT}:fps={FPS},"
             f"{grade}"
         )
         cmd = [FFMPEG_EXE, "-y", "-i", str(in_file)]
@@ -703,6 +715,7 @@ def run_long_form_pipeline(topic: str = None, privacy_status: str = "public", up
                 sdur,
                 clip_mp4,
                 overlay_png=(ov_png if s_idx == 0 else None),
+                move_idx=len(all_scene_clips),
             )
             all_scene_clips.append(clip_mp4)
             print(f"  [CLIP] Ch{c_num}.S{s_idx+1}: {actual_type.upper()} ({sdur:.1f}s) rendered.")
