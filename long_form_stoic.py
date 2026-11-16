@@ -78,6 +78,13 @@ CURATED_LONG_TOPICS = [
     "Seneca on Mastering Time: Stop Wasting Your One Short Life",
     "How to Stay Unshakeable When Everyone Around You Panics",
     "The Hidden Stoic Routine to Conquer Anxiety and Anger Forever",
+    "Listen Before Sleep: Marcus Aurelius on Silencing a Restless Mind",
+    "7 Stoic Rules to Stop Taking Things Personally and Protect Your Peace",
+    "Seneca's Brutal Cure for Procrastination and Wasted Years",
+    "How to Deal With Disrespectful People Like a Stoic (Without Reacting)",
+    "Why Solitude Is the Ultimate Superpower: Epictetus' Guide to Inner Strength",
+    "The Morning Stoic Reset: 5 Questions Marcus Aurelius Asked Every Dawn",
+    "How to Let Go of People Who Drain Your Peace | Stoic Philosophy",
 ]
 
 
@@ -145,22 +152,27 @@ def call_gemini_text(prompt: str, timeout: int = 45, json_mode: bool = True) -> 
     return ""
 
 
-def generate_long_script(topic: str, target_minutes: int = 11) -> dict:
+def generate_long_script(topic: str, target_minutes: int = 13) -> dict:
     """
-    Generates a coherent 5-chapter Stoic documentary script (~1,500-1,800 words for ~10-13 min)
+    Generates a coherent 5-chapter Stoic documentary script (~1,900-2,200 words for ~13-15 min)
     with explicit visual_type ('video' or 'photo') and cohesive atmospheric search queries.
     """
     outline_prompt = f"""
-You are an elite YouTube documentary writer for a top Stoic Philosophy channel ("The Mind and Stoicism"), whose audience watches AND listens with headphones while working, driving, or winding down.
+You are an elite YouTube documentary writer for a US-focused Stoic Philosophy channel ("The Mind and Stoicism"), whose core audience is mature American listeners (ages 35-65+) who watch and listen with headphones while working, driving, or winding down at night.
 
 Topic: "{topic}"
 
-Create a 5-Chapter outline for an engaging, deeply reflective {target_minutes}-minute video essay (~1,500 to 1,800 words total).
+Create a 5-Chapter outline for an engaging, deeply reflective {target_minutes}-minute video essay (~1,900 to 2,200 words total).
+TITLE & THUMBNAIL RULES (CRITICAL FOR US SEARCH & BROWSE CTR):
+- Write the "title" in crisp American English, under 68 characters (DO NOT include #shorts).
+- Lead with a clear real-life pain point or practical promise people in the US actively search for (e.g., overthinking, anxiety, disrespect, solitude, sleep, discipline, letting go) paired with a classic Stoic thinker.
+- Keep "thumbnail_text" to 2-4 BOLD, punchy uppercase words that create immediate curiosity without repeating the full title (e.g., "NEVER REACT", "SILENCE YOUR MIND", "LET THEM GO").
+
 Return ONLY valid JSON:
 {{
-  "title": "Compelling, high-CTR Stoic documentary title under 75 chars (DO NOT include #shorts)",
-  "thumbnail_text": "3-4 BOLD WORDS for thumbnail",
-  "description_summary": "2-sentence compelling hook summarizing what listeners will master.",
+  "title": "High-CTR US Stoic documentary title under 68 chars (no #shorts)",
+  "thumbnail_text": "2-4 BOLD WORDS for thumbnail",
+  "description_summary": "2-sentence compelling US-English hook summarizing what listeners will master.",
   "chapters": [
     {{
       "chapter_num": 1,
@@ -190,7 +202,7 @@ Mood/Visual theme for this chapter: {c_mood}
 Core message to cover: {c_points}
 
 CRITICAL VOICE & LISTENER RULES:
-1. Write 320 to 380 spoken words divided into 10 cohesive micro-scenes (30-40 words per scene, ~10-12 seconds each so visuals stay fresh).
+1. Write 380 to 440 spoken words divided into 10 cohesive micro-scenes (38-44 words per scene, ~12-15 seconds each so visuals stay fresh).
 2. Because listeners also consume this audio-only, use DELIBERATE punctuation:
    - Commas (,) for natural breathing pauses.
    - Em-dashes (—) for dramatic shifts.
@@ -566,8 +578,8 @@ def create_thumbnail(bg_img: Path, hook_text: str, out_thumb: Path):
     """Generates a dramatic 1280x720 YouTube thumbnail from the best Stoic image."""
     img = Image.open(bg_img).convert("RGB")
     img = img.resize((1280, 720), Image.Resampling.LANCZOS)
-    # Darken gradient
-    overlay = Image.new("RGBA", (1280, 720), (0, 0, 0, 135))
+    # Darken gradient for strong high-contrast mobile & desktop readability
+    overlay = Image.new("RGBA", (1280, 720), (0, 0, 0, 150))
     img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
     draw = ImageDraw.Draw(img)
 
@@ -581,19 +593,19 @@ def create_thumbnail(bg_img: Path, hook_text: str, out_thumb: Path):
         if os.path.exists(cand):
             font_path = cand
             break
-    font = ImageFont.truetype(font_path, 86) if font_path else ImageFont.load_default()
+    font = ImageFont.truetype(font_path, 104) if font_path else ImageFont.load_default()
 
     words = hook_text.upper().split()
     lines = [" ".join(words[i:i+2]) for i in range(0, len(words), 2)]
-    y = 220
+    y = 190
     for idx, line in enumerate(lines[:3]):
         color = (255, 215, 0) if idx == 0 else (255, 255, 255)
         bbox = draw.textbbox((0, 0), line, font=font)
         tw = bbox[2] - bbox[0]
         x = (1280 - tw) // 2
-        draw.text((x + 4, y + 4), line, font=font, fill=(0, 0, 0))
+        draw.text((x + 5, y + 5), line, font=font, fill=(0, 0, 0))
         draw.text((x, y), line, font=font, fill=color)
-        y += 105
+        y += 120
 
     img.save(out_thumb, quality=92)
 
@@ -612,8 +624,14 @@ def upload_long_youtube(
         "snippet": {
             "title": title[:100],
             "description": description[:5000],
-            "tags": ["stoicism", "marcus aurelius", "philosophy", "seneca", "epictetus", "self improvement", "stoic mindset", "sleep philosophy", "documentary"],
+            "tags": [
+                "stoicism", "stoic philosophy", "marcus aurelius", "marcus aurelius meditations",
+                "seneca", "epictetus", "stoicism for men", "stoic mindset",
+                "stoic routine", "sleep philosophy", "self improvement", "documentary",
+            ],
             "categoryId": "27",  # Education
+            "defaultLanguage": "en",
+            "defaultAudioLanguage": "en",
         },
         "status": {
             "privacyStatus": "private" if privacy_status == "scheduled" else privacy_status,

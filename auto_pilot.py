@@ -23,6 +23,29 @@ from uploader import upload_shorts_video
 from multi_platform_uploader import upload_to_facebook_reels, upload_to_tiktok
 
 HISTORY_FILE = BASE_DIR / "history.json"
+LONG_HISTORY_FILE = BASE_DIR / "long_history.json"
+
+
+def pick_related_long_video(topic: str) -> dict | None:
+    """Finds the best-matching (or latest) published long-form documentary for cross-linking."""
+    if not LONG_HISTORY_FILE.exists():
+        return None
+    try:
+        longs = json.loads(LONG_HISTORY_FILE.read_text(encoding="utf-8"))
+        if not longs:
+            return None
+        keywords = [w for w in topic.lower().split() if len(w) >= 4]
+        best_item = None
+        best_score = 0
+        for item in longs:
+            hay = f"{item.get('topic', '')} {item.get('title', '')}".lower()
+            score = sum(1 for kw in keywords if kw in hay)
+            if score > best_score:
+                best_score = score
+                best_item = item
+        return best_item if best_item else longs[-1]
+    except Exception:
+        return None
 
 
 def load_history() -> list[dict]:
@@ -139,7 +162,15 @@ def run_autopilot(privacy_status: str = "scheduled"):
         title = f"{topic.title()} #shorts"
         description = f"Ancient Stoic wisdom on {topic}. Subscribe for daily mental mastery! #shorts #stoic #stoicism #marcusaurelius #philosophy #wisdom"
 
-    tags = ["shorts", "stoicism", "marcusaurelius", "philosophy", "wisdom", "mindset", "mentalstrength", "seneca", "epictetus"]
+    tags = ["shorts", "stoicism", "stoic philosophy", "marcus aurelius", "philosophy", "wisdom", "mindset", "mentalstrength", "seneca", "epictetus"]
+
+    related_long = pick_related_long_video(topic)
+    if related_long and related_long.get("url"):
+        description = (
+            f"{description.rstrip()}\n\n"
+            f"🎧 Watch the full Stoic deep dive:\n"
+            f"{related_long.get('title', 'Full Stoic Documentary')} → {related_long['url']}"
+        )
 
     # 4. Upload to YouTube
     print(f"\n[AUTOPILOT] Uploading to YouTube ({privacy_status})...")
