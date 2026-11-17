@@ -35,7 +35,7 @@ def ensure_dirs():
 def generate_script_and_metadata(topic: str) -> dict:
     """
     Generates an engaging, high-retention English YouTube Shorts script, title, description,
-    and visual stock search queries about Finance, Wealth Mindset, and Investing.
+    and visual stock search queries about Stoicism, Ancient Philosophy, and Mental Mastery.
     """
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if api_key:
@@ -77,6 +77,11 @@ Rules:
                     if match:
                         parsed = json.loads(match.group(0))
                         if "scenes" in parsed and len(parsed["scenes"]) > 0:
+                            t_raw = parsed.get("title", topic).strip()
+                            t_raw = re.sub(r"#shorts", "", t_raw, flags=re.IGNORECASE).strip()
+                            if len(t_raw) > 55:
+                                t_raw = t_raw[:55].rsplit(" ", 1)[0].rstrip(".,:-")
+                            parsed["title"] = f"{t_raw} #shorts"
                             print(f"[OK] Script generated via Google Gemini API ({model_name}).")
                             return parsed
                 else:
@@ -87,32 +92,33 @@ Rules:
     # Fallback script generator
     clean_topic = topic.strip().rstrip("?.!")
     print(f"[INFO] Generating Stoic Philosophy Shorts script for topic: '{clean_topic}'")
+    fallback_title = clean_topic[:55].rsplit(" ", 1)[0].rstrip(".,:-") if len(clean_topic) > 55 else clean_topic
     return {
-        "title": f"The Brutal Truth About {clean_topic.title()} #shorts",
+        "title": f"{fallback_title} #shorts",
         "description": (
-            f"Here is what 99% of people never understand about {clean_topic}. "
-            f"Watch until the end to change your perspective on wealth! #shorts #stoicism #marcusaurelius #philosophy #wisdom"
+            f"Timeless Stoic philosophy: {clean_topic}. "
+            f"Subscribe for daily mental discipline! #shorts #stoicism #marcusaurelius #philosophy #wisdom"
         ),
         "scenes": [
             {
-                "narration": f"Here is the brutal truth about {clean_topic} that the top 1% understands, but most people never will.",
-                "search_query": "luxury watch cash",
-                "image_prompt": "Ultra luxury watch and counting cash in dark cinematic lighting",
+                "narration": f"Two thousand years ago, Stoic masters already solved the hidden struggle behind {clean_topic}.",
+                "search_query": "stoic statue marble",
+                "image_prompt": "Dramatic classical marble Stoic philosopher bust in dark chiaroscuro lighting",
             },
             {
-                "narration": "Most people stay broke not because of how much they earn, but because of the hidden psychological money traps they fall for daily.",
-                "search_query": "wall street stock market",
-                "image_prompt": "Wall Street stock exchange floor fast motion",
+                "narration": "Most suffering does not come from events themselves, but from the stories your undisciplined mind repeats about them.",
+                "search_query": "ancient roman architecture",
+                "image_prompt": "Ancient Roman stone columns under moody twilight sky",
             },
             {
-                "narration": "True wealth is not about showing off expensive depreciating toys. It is about buying your time and financial sovereignty.",
-                "search_query": "penthouse city skyline",
-                "image_prompt": "Modern luxury high-rise penthouse overlooking nocturnal city skyline",
+                "narration": "When you anchor your peace strictly to what you control, outside chaos loses all power over you.",
+                "search_query": "storm ocean waves",
+                "image_prompt": "Dark stormy ocean waves crashing against unmoving sea cliff",
             },
             {
-                "narration": "The moment you start acquiring income-producing assets instead of liabilities, you stop working for money, and money starts working for you.",
-                "search_query": "supercar night drive",
-                "image_prompt": "Cinematic night drive in modern luxury sports car",
+                "narration": "Master your reactions today, and you become untouchable tomorrow.",
+                "search_query": "solitary mountain man",
+                "image_prompt": "Solitary figure standing calm on misty mountain ridge at dawn",
             },
         ],
     }

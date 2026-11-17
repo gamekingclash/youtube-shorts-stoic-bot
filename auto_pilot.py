@@ -58,14 +58,17 @@ def load_history() -> list[dict]:
     return []
 
 
-def save_to_history(topic: str, title: str, url: str):
+def save_to_history(topic: str, title: str, url: str, publish_at: str = None):
     history = load_history()
-    history.append({
+    entry = {
         "topic": topic,
         "title": title,
         "url": url,
         "timestamp": datetime.now().isoformat(timespec="seconds")
-    })
+    }
+    if publish_at:
+        entry["publish_at"] = publish_at
+    history.append(entry)
     with open(HISTORY_FILE, "w", encoding="utf-8") as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
 
@@ -107,18 +110,31 @@ def pick_viral_topic() -> str:
     history = load_history()
     past_topics = [item.get("topic", "").lower() for item in history]
 
+    recent_text = " ".join(
+        f"{item.get('topic', '')} {item.get('title', '')}" for item in history[-2:]
+    ).lower()
+    avoid_philosophers = [
+        p for p in ["seneca", "marcus aurelius", "epictetus"] if p in recent_text
+    ]
+
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if api_key:
         try:
             import requests
 
-            past_list_str = "\\n- ".join(past_topics[-15:]) if past_topics else "None"
+            past_list_str = "\n- ".join(past_topics[-15:]) if past_topics else "None"
+            avoid_rule = (
+                f"Do NOT focus on {', '.join(p.title() for p in avoid_philosophers)} this time—rotate to a different Stoic thinker or timeless Stoic principle.\n"
+                if avoid_philosophers
+                else ""
+            )
             prompt = (
-                "We have ALREADY published YouTube Shorts about these Stoic philosophy topics:\\n"
-                f"- {past_list_str}\\n\\n"
+                "We have ALREADY published YouTube Shorts about these Stoic philosophy topics:\n"
+                f"- {past_list_str}\n\n"
                 "CRITICAL RULE: Suggest ONE brand new, deeply impactful YouTube Shorts topic in English about "
-                "Stoicism, Marcus Aurelius, Seneca, Epictetus, mental resilience, emotional mastery, or discipline.\\n"
-                "Do NOT duplicate or repeat the ideas above.\\n"
+                "Stoicism, Marcus Aurelius, Seneca, Epictetus, mental resilience, emotional mastery, or discipline.\n"
+                f"{avoid_rule}"
+                "Do NOT duplicate or repeat the ideas above.\n"
                 "Return ONLY the topic sentence, under 10 words, no quotes."
             )
             r = requests.post(
@@ -129,11 +145,15 @@ def pick_viral_topic() -> str:
             if r.status_code == 200:
                 txt = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
                 if txt and len(txt) > 5 and txt.lower() not in past_topics:
-                    return txt.strip('"')
+                    if not any(p in txt.lower() for p in avoid_philosophers):
+                        return txt.strip('"')
         except Exception:
             pass
 
     available = [t for t in VIRAL_STOIC_PROMPTS if t.lower() not in past_topics]
+    rotated = [t for t in available if not any(p in t.lower() for p in avoid_philosophers)]
+    if rotated:
+        return random.choice(rotated)
     if not available:
         available = VIRAL_STOIC_PROMPTS
     return random.choice(available)
@@ -151,16 +171,20 @@ def run_autopilot(privacy_status: str = "scheduled"):
     # 2. Build complete Short video
     video_path = build_shorts_video(topic)
 
-    # 3. Load generated metadata
-    meta_path = video_path.with_name(video_path.stem + "_metadata.json")
+    # 3. Load generated metadata (supports both .json and _metadata.json)
+    meta_path = video_path.with_suffix(".json")
+    if not meta_path.exists():
+        meta_path = video_path.with_name(video_path.stem + "_metadata.json")
+    clean_topic = topic.strip().rstrip("?.!")
+    fallback_title = clean_topic[:55].rsplit(" ", 1)[0].rstrip(".,:-") if len(clean_topic) > 55 else clean_topic
     if meta_path.exists():
         with open(meta_path, "r", encoding="utf-8") as f:
             meta = json.load(f)
-        title = meta.get("title", f"{topic.title()} #shorts")
-        description = meta.get("description", f"{topic} #shorts #stoic #stoicism #marcusaurelius #philosophy #wisdom")
+        title = meta.get("title", f"{fallback_title} #shorts")
+        description = meta.get("description", f"Timeless Stoic philosophy: {clean_topic}. #shorts #stoic #stoicism #marcusaurelius #philosophy #wisdom")
     else:
-        title = f"{topic.title()} #shorts"
-        description = f"Ancient Stoic wisdom on {topic}. Subscribe for daily mental mastery! #shorts #stoic #stoicism #marcusaurelius #philosophy #wisdom"
+        title = f"{fallback_title} #shorts"
+        description = f"Timeless Stoic philosophy: {clean_topic}. Subscribe for daily mental mastery! #shorts #stoic #stoicism #marcusaurelius #philosophy #wisdom"
 
     tags = ["shorts", "stoicism", "stoic philosophy", "marcus aurelius", "philosophy", "wisdom", "mindset", "mentalstrength", "seneca", "epictetus"]
 
@@ -187,7 +211,8 @@ def run_autopilot(privacy_status: str = "scheduled"):
     upload_to_tiktok(video_path=video_path, title=title)
 
     # 6. Save to history
-    save_to_history(topic=topic, title=title, url=url)
+    import uploader as _uploader
+    save_to_history(topic=topic, title=title, url=url, publish_at=getattr(_uploader, "LAST_SCHEDULED_PUBLISH_AT", None))
     print("\n" + "=" * 60)
     print(f"[SUCCESS] Stoic Short Live on YouTube: {url}")
     print("=" * 60)
