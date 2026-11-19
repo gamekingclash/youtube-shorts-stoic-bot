@@ -122,7 +122,7 @@ def pick_viral_topic() -> str:
         try:
             import requests
 
-            past_list_str = "\n- ".join(past_topics[-15:]) if past_topics else "None"
+            past_list_str = "\n- ".join(past_topics[-80:]) if past_topics else "None"
             avoid_rule = (
                 f"Do NOT focus on {', '.join(p.title() for p in avoid_philosophers)} this time—rotate to a different Stoic thinker or timeless Stoic principle.\n"
                 if avoid_philosophers

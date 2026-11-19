@@ -1,13 +1,10 @@
 # PROJECT_STATE.md
 
 ## Done
-- Fixed metadata JSON filename mismatch in `auto_pilot.py` (now checks both `.json` and `_metadata.json` so Gemini titles/descriptions are no longer discarded).
-- Replaced copy-pasted Finance fallback script in `main.py` with genuine Stoic philosophy fallback and added clean title normalization (`<=55` chars + `#shorts`).
-- Added philosopher rotation in `auto_pilot.py` to avoid back-to-back Seneca/Marcus/Epictetus repeats.
-- Added `get_next_stoic_publish_time` in `uploader.py` (`22:00` & `01:00 UTC` US prime slots with collision avoidance).
+- Hardened `main.py` Gemini call (`responseMimeType: "application/json"` + retry on transient 503/errors) and expanded `auto_pilot.py` topic history window to `past_topics[-80:]` while preserving existing Stoic prompts, philosopher rotation, queries, and 2x/day prime-time schedule.
 
 ## Current State
-- Stoic Wisdom bot updated with working metadata resolution, philosopher rotation, Stoic fallback, and US prime-time scheduling.
+- `youtube-shorts-stoic-bot` updated and verified (`py_compile` + Gemini smoke test).
 
 ## Next Step
-- Push changes to `origin/main` and monitor upcoming Stoic Shorts variety and performance.
+- Monitor ongoing Stoic Shorts & Long-Form cross-linked performance.

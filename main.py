@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import textwrap
+import time
 import wave
 from pathlib import Path
 from urllib.parse import quote
@@ -64,30 +65,35 @@ Rules:
 - Final scene MUST end with a timeless philosophical lesson or powerful question.
 """
         for model_name in ["gemini-flash-lite-latest", "gemini-flash-latest"]:
-            try:
-                resp = requests.post(
-                    f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}",
-                    json={"contents": [{"parts": [{"text": prompt}]}]},
-                    timeout=20,
-                )
-                if resp.status_code == 200:
-                    data_json = resp.json()
-                    raw = data_json["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    match = re.search(r"\{.*\}", raw, re.DOTALL)
-                    if match:
-                        parsed = json.loads(match.group(0))
-                        if "scenes" in parsed and len(parsed["scenes"]) > 0:
-                            t_raw = parsed.get("title", topic).strip()
-                            t_raw = re.sub(r"#shorts", "", t_raw, flags=re.IGNORECASE).strip()
-                            if len(t_raw) > 55:
-                                t_raw = t_raw[:55].rsplit(" ", 1)[0].rstrip(".,:-")
-                            parsed["title"] = f"{t_raw} #shorts"
-                            print(f"[OK] Script generated via Google Gemini API ({model_name}).")
-                            return parsed
-                else:
-                    print(f"[WARN] Gemini model {model_name} returned status {resp.status_code}")
-            except Exception as exc:
-                print(f"[WARN] Gemini API call ({model_name}) failed: {exc}")
+            for attempt in range(2):
+                try:
+                    resp = requests.post(
+                        f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}",
+                        json={
+                            "contents": [{"parts": [{"text": prompt}]}],
+                            "generationConfig": {"responseMimeType": "application/json"},
+                        },
+                        timeout=22,
+                    )
+                    if resp.status_code == 200:
+                        data_json = resp.json()
+                        raw = data_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        match = re.search(r"\{.*\}", raw, re.DOTALL)
+                        if match:
+                            parsed = json.loads(match.group(0))
+                            if "scenes" in parsed and len(parsed["scenes"]) > 0:
+                                t_raw = parsed.get("title", topic).strip()
+                                t_raw = re.sub(r"#shorts", "", t_raw, flags=re.IGNORECASE).strip()
+                                if len(t_raw) > 55:
+                                    t_raw = t_raw[:55].rsplit(" ", 1)[0].rstrip(".,:-")
+                                parsed["title"] = f"{t_raw} #shorts"
+                                print(f"[OK] Script generated via Google Gemini API ({model_name}).")
+                                return parsed
+                    else:
+                        print(f"[WARN] Gemini model {model_name} attempt {attempt+1} returned status {resp.status_code}")
+                except Exception as exc:
+                    print(f"[WARN] Gemini API call ({model_name}) attempt {attempt+1} failed: {exc}")
+                time.sleep(1.5)
 
     # Fallback script generator
     clean_topic = topic.strip().rstrip("?.!")
