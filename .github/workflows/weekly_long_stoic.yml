@@ -2,8 +2,8 @@ name: Stoic Wisdom Long-Form Documentary Generator
 
 on:
   schedule:
-    # Twice a week (Wednesday & Sunday at 19:00 TRT = 16:00 UTC)
-    - cron: '0 16 * * 0,3'
+    # Once a week (Sunday at 19:00 TRT = 16:00 UTC) for focused quality
+    - cron: '0 16 * * 0'
   workflow_dispatch:
 
 permissions:

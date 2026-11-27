@@ -2,10 +2,8 @@ name: Daily Stoic Shorts & Reels Generator
 
 on:
   schedule:
-    # Wave 1 (Afternoon TRT)
-    - cron: '45 12 * * *'
-    # Wave 2 (Evening Prime Time TRT)
-    - cron: '15 17 * * *'
+    # Focused 1x/day US prime-time slot -> publishes at 22:00 UTC (01:00 TRT / 17:00 EST)
+    - cron: '45 17 * * *'
   workflow_dispatch:
 
 permissions:

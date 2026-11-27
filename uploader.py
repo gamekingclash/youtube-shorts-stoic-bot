@@ -105,23 +105,22 @@ def _load_scheduled_times(history_file: Path) -> list:
 
 
 def get_next_stoic_publish_time(now_utc) -> object:
-    """Returns the next US prime-time publishAt datetime (UTC) for Stoic Shorts."""
+    """Returns the next 1x/day US prime-time publishAt datetime (UTC) for Stoic Shorts."""
     from datetime import timedelta
 
     min_ready = now_utc + timedelta(minutes=25)
     occupied = _load_scheduled_times(BASE_DIR / "history.json")
     candidates = []
-    for day_offset in range(0, 3):
+    for day_offset in range(0, 4):
         day_base = (now_utc + timedelta(days=day_offset)).replace(second=0, microsecond=0)
-        # 22:00 UTC (01:00 TRT / 17:00 EST) and 01:00 UTC (04:00 TRT / 20:00 EST)
-        candidates.append(day_base.replace(hour=1, minute=0))
+        # Single high-impact daily slot: 22:00 UTC (01:00 TRT / 17:00 EST)
         candidates.append(day_base.replace(hour=22, minute=0))
     candidates.sort()
 
     for slot in candidates:
         if slot < min_ready:
             continue
-        if any(abs((slot - occ).total_seconds()) < 3 * 3600 for occ in occupied):
+        if any(abs((slot - occ).total_seconds()) < 18 * 3600 for occ in occupied):
             continue
         return slot
 
